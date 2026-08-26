@@ -11,7 +11,7 @@ body{background:#0d0d0d;color:#f5f0e6;font-family:'Heebo',Arial,sans-serif}
 #intro h1{font-weight:900;font-size:34px;line-height:1.25;max-width:620px;margin-bottom:18px}
 #intro h1 .g{color:#b8962e}
 #intro p{font-size:16px;color:#b8b3a8;max-width:520px;line-height:1.65;margin-bottom:14px;font-weight:300}
-#intro .small{font-size:13.5px;color:#6a655c;max-width:480px;margin-bottom:34px}
+#intro .small{font-size:13.5px;color:#a49e92;max-width:480px;margin-bottom:34px}
 .pickbox{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:340px}
 select{width:100%;padding:15px 18px;font-family:'Heebo',Arial,sans-serif;font-size:16px;font-weight:700;background:#161512;color:#f5f0e6;border:1px solid rgba(184,150,46,.45);border-radius:10px;cursor:pointer;text-align:center;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23b8962e' d='M6 8L0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:left 18px center}
 select:focus{outline:none;border-color:#b8962e}
@@ -159,7 +159,38 @@ function select(id,scroll){
  document.getElementById('dcard').classList.add('show');document.getElementById('dtap').style.display='none';
  // clickable names
  document.querySelectorAll('.mname[data-go]').forEach(function(el){el.addEventListener('click',function(){select(el.getAttribute('data-go'),true);});});
- if(scroll){var y=document.getElementById('svg').getBoundingClientRect();window.scrollTo({top:0,behavior:'smooth'});}
+ zoomTo(id,mm);
+ if(scroll){window.scrollTo({top:0,behavior:'smooth'});}
+}
+// zoom the SVG viewBox to frame the selected member + its neighbours
+function zoomTo(id,mm){
+ var pts=[[M[id].x,M[id].y]];
+ mm.t1.concat(mm.t2).forEach(function(r){pts.push([M[r.o].x,M[r.o].y]);});
+ var xs=pts.map(function(p){return p[0];}),ys=pts.map(function(p){return p[1];});
+ var minx=Math.min.apply(null,xs),maxx=Math.max.apply(null,xs);
+ var miny=Math.min.apply(null,ys),maxy=Math.max.apply(null,ys);
+ var pad=110;
+ minx-=pad;miny-=pad;maxx+=pad;maxy+=pad;
+ var w=maxx-minx,h=maxy-miny;
+ // keep aspect ratio squareish so labels aren't clipped
+ var size=Math.max(w,h);
+ var cx=(minx+maxx)/2,cy=(miny+maxy)/2;
+ var vb=(cx-size/2)+' '+(cy-size/2)+' '+size+' '+size;
+ animateViewBox(document.getElementById('svg'),vb);
+}
+function resetZoom(){document.getElementById('svg').setAttribute('viewBox','0 0 1200 1200');}
+function animateViewBox(svg,target){
+ var cur=(svg.getAttribute('viewBox')||'0 0 1200 1200').split(' ').map(Number);
+ var to=target.split(' ').map(Number);
+ var start=null,dur=450;
+ function step(ts){
+  if(!start)start=ts;var t=Math.min((ts-start)/dur,1);
+  var e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; // easeInOut
+  var v=cur.map(function(c,i){return c+(to[i]-c)*e;});
+  svg.setAttribute('viewBox',v.join(' '));
+  if(t<1)requestAnimationFrame(step);
+ }
+ requestAnimationFrame(step);
 }
 nodes.forEach(function(n){n.addEventListener('click',function(){select(n.getAttribute('data-id'),false);});});
 pk2.addEventListener('change',function(){if(pk2.value)select(pk2.value,true);});
